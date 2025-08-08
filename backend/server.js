@@ -15,6 +15,7 @@ app.use(
     origin: [
       "http://localhost:5173",
       "https://isp-q3ei.vercel.app",
+      "https://isp-q3ei-ankitjha412s-projects.vercel.app"
     ],
     credentials: true,
   })

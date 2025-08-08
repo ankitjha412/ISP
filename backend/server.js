@@ -14,7 +14,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://isp-ytqe-git-main-ankitjha412s-projects.vercel.app",
+      "https://isp-q3ei.vercel.app",
     ],
     credentials: true,
   })

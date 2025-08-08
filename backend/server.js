@@ -10,10 +10,15 @@ import cors from 'cors'
 dotenv.config()
 const app = express()
 
-app.use(cors({
-  origin: 'http://localhost:5173',
-  credentials: true,
-}))
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://isp-ytqe-git-main-ankitjha412s-projects.vercel.app",
+    ],
+    credentials: true,
+  })
+);
 // ✅ Only this for large JSON bodies
 app.use(express.json({ limit: '1000mb' }))
 app.use(express.urlencoded({ extended: true, limit: '1000mb' }))

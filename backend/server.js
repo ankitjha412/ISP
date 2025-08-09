@@ -45,61 +45,56 @@ import adminRoutes from './routes/admin.js';
 dotenv.config();
 const app = express();
 
-/** ---- CORS (dynamic allowlist + preflight) ---- */
-const explicitAllow = new Set([
+/* Trust proxy (needed for secure cookies behind HTTPS/CDN) */
+app.set('trust proxy', 1);
+
+/* CORS: allow local + your domains + any vercel.app preview */
+const allowlist = new Set([
   'http://localhost:5173',
   'https://isp-q3ei.vercel.app',
   'https://isp-q3ei-ankitjha412s-projects.vercel.app',
 ]);
 
-function isAllowedOrigin(origin) {
-  if (!origin) return true; // allow server-to-server / curl / same-origin
-  try {
-    const u = new URL(origin);
-    if (explicitAllow.has(origin)) return true;
-    // allow any https vercel preview of your project
-    if (u.protocol === 'https:' && u.hostname.endsWith('.vercel.app')) return true;
-    return false;
-  } catch {
-    return false;
-  }
-}
-
 const corsOptions = {
   origin(origin, cb) {
-    if (isAllowedOrigin(origin)) cb(null, true);
-    else cb(new Error('Not allowed by CORS'));
+    if (!origin) return cb(null, true); // server-to-server or same-origin
+    try {
+      const u = new URL(origin);
+      if (allowlist.has(origin) || u.hostname.endsWith('.vercel.app')) {
+        return cb(null, true);
+      }
+      return cb(new Error('Not allowed by CORS'));
+    } catch {
+      return cb(new Error('Invalid Origin'));
+    }
   },
   credentials: true,
   methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-  allowedHeaders: [
-    'Content-Type',
-    'Authorization',
-    'X-Requested-With',
-    'Accept',
-    'Origin',
-  ],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
   exposedHeaders: ['set-cookie'],
   optionsSuccessStatus: 204,
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // <-- handle preflight
+app.options('*', cors(corsOptions)); // handle preflight
 
-// If you set cookies (login sessions) behind a proxy/CDN:
-app.set('trust proxy', 1);
-
-// Large JSON bodies
+/* Body parsers */
 app.use(express.json({ limit: '1000mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1000mb' }));
 
+/* Health check (useful on Render) */
+app.get('/health', (_req, res) => res.status(200).send('OK'));
+
+/* Routes */
 app.use('/api/auth', authRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/admin', adminRoutes);
 
+/* DB + server */
+const PORT = process.env.PORT || 5000;
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
-    app.listen(5000, () => console.log('Server running on 5000'));
+    app.listen(PORT, () => console.log(`Server running on ${PORT}`));
   })
-  .catch(err => console.error(err));
+  .catch((err) => console.error(err));
